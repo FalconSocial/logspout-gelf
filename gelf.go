@@ -65,11 +65,6 @@ func (a *GelfAdapter) Stream(logstream chan *router.Message) {
 	for message := range logstream {
 		m := &GelfMessage{message}
 
-		if strings.HasPrefix(m.Container.Config.Image, "rancher") {
-			// Temporary hack to get around Rancher system label bug
-			continue
-		}
-
 		level := gelf.LOG_INFO
 		if m.Source == "stderr" {
 			level = gelf.LOG_ERR
