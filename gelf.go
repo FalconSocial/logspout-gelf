@@ -89,6 +89,10 @@ func (a *GelfAdapter) Stream(logstream chan *router.Message) {
 			RawExtra: extra,
 		}
 
+		if msg.Short == "" {
+			msg.Short = "None"
+		}
+
 		// here be message write.
 		if err := a.writer.WriteMessage(&msg); err != nil {
 			log.Println("Graylog:", err)
