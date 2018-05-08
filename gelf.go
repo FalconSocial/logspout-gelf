@@ -14,27 +14,37 @@ import (
 	"github.com/gliderlabs/logspout/router"
 )
 
-var hostname string
+const rancherBaseUrl string = "http://rancher-metadata.rancher.internal"
 
 func init() {
-	hostname, _ = hostnameFromRancherMetadata()
+	rancherHost, _ := fromRancherMetadata("/latest/self/host/name")
+	if rancherHost == "" {
+		rancherHost, _ = os.Hostname()
+	}
+
+	rancherEnvironment, _ := fromRancherMetadata("/latest/name")
+	if rancherEnvironment == "" {
+		rancherEnvironment = "-"
+	}
+
 	router.AdapterFactories.Register(NewGelfAdapter, "gelf")
 }
 
-func hostnameFromRancherMetadata() (hostname string, err error) {
-	res, err := http.Get("http://rancher-metadata.rancher.internal/latest/self/host/name")
-	if err == nil {
-		resBytes, err := ioutil.ReadAll(res.Body)
-		if err == nil {
-			hostname = string(resBytes)
-		}
+func fromRancherMetadata (path string) (string, error) {
+	resp, err := http.Get(rancherBaseUrl + path)
+	if err != nil {
+		return "", err
 	}
 
-	if len(hostname) == 0 {
-		hostname, err = os.Hostname()
+	respBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
 	}
-	return
+
+	defer resp.Body.Close()
+	return string(respBytes), nil
 }
+
 
 // GelfAdapter is an adapter that streams UDP JSON to Graylog
 type GelfAdapter struct {
@@ -115,7 +125,8 @@ func (m GelfMessage) getExtraFields() (json.RawMessage, error) {
 		"_command":               strings.Join(m.Container.Config.Cmd[:], " "),
 		"_created":               m.Container.Created,
 		"_rancher_stack_service": m.Container.Config.Labels["io.rancher.stack_service.name"],
-		"_rancher_host":          hostname,
+		"_rancher_host":          rancherHost,
+		"_rancher_environment":   rancherEnvironment,
 		"_logspout_instance":     logspoutInstance,
 		"_logspout_source":       m.Source,
 	}
