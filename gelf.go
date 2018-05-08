@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"fmt"
 
 	"github.com/Graylog2/go-gelf/gelf"
 	"github.com/gliderlabs/logspout/router"
@@ -20,15 +21,21 @@ var hostname string
 var rancherEnvironment string
 
 func init() {
-	hostname, _ := fromRancherMetadata("/latest/self/host/name")
-	if hostname == "" {
+	var err error
+
+	hostname, err = fromRancherMetadata("/latest/self/host/name")
+	if hostname == "" || err != nil {
+		fmt.Println("WARN: Hostname is not available from Rancher Metadata or query resulted an error:", err)
 		hostname, _ = os.Hostname()
 	}
+	fmt.Println("Hostname:", hostname)
 
-	rancherEnvironment, _ := fromRancherMetadata("/latest/name")
-	if rancherEnvironment == "" {
+	rancherEnvironment, err = fromRancherMetadata("/latest/name")
+	if rancherEnvironment == "" || err != nil {
+		fmt.Println("WARN: Environment is not available from Rancher Metadata or query resulted an error:", err)
 		rancherEnvironment = "-"
 	}
+	fmt.Println("Environment:", rancherEnvironment)
 
 	router.AdapterFactories.Register(NewGelfAdapter, "gelf")
 }
