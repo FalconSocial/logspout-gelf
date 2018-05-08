@@ -16,10 +16,13 @@ import (
 
 const rancherBaseUrl string = "http://rancher-metadata.rancher.internal"
 
+var hostname string
+var rancherEnvironment string
+
 func init() {
-	rancherHost, _ := fromRancherMetadata("/latest/self/host/name")
-	if rancherHost == "" {
-		rancherHost, _ = os.Hostname()
+	hostname, _ := fromRancherMetadata("/latest/self/host/name")
+	if hostname == "" {
+		hostname, _ = os.Hostname()
 	}
 
 	rancherEnvironment, _ := fromRancherMetadata("/latest/name")
@@ -125,7 +128,7 @@ func (m GelfMessage) getExtraFields() (json.RawMessage, error) {
 		"_command":               strings.Join(m.Container.Config.Cmd[:], " "),
 		"_created":               m.Container.Created,
 		"_rancher_stack_service": m.Container.Config.Labels["io.rancher.stack_service.name"],
-		"_rancher_host":          rancherHost,
+		"_rancher_host":          hostname,
 		"_rancher_environment":   rancherEnvironment,
 		"_logspout_instance":     logspoutInstance,
 		"_logspout_source":       m.Source,
